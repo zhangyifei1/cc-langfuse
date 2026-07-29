@@ -1,0 +1,24 @@
+{
+  "_comment": "Langfuse 默认配置示例。开源用户请填入自己的 publicKey/secretKey/baseUrl，或安装后在 ~/.claude/settings.json 的 env 中用 CC_LANGFUSE_* 环境变量覆盖。",
+  "traceToLangfuse": "true",
+  "debug": "true",
+  "publicKey": "pk-lf-xxxxxxxx",
+  "secretKey": "sk-lf-xxxxxxxx",
+  "baseUrl": "https://your-langfuse-host",
+  "maxChars": "20000",
+  "_pricing_comment": "【当前未启用】模型计价表（元/百万token），保留备用。当前版本(1.0.4)已移除成本计算，此配置不生效。待计价标准明确后，在 src/hook.js 的 buildTokenDetails 恢复成本逻辑即可启用此表。注意：填单价时务必核实计价单位是'每千token'还是'每百万token'，搞错会导致成本虚高1000倍。字段：input/output/cacheRead/cacheWrite5m/cacheWrite1h。key 支持双向包含匹配，如 model='glm-5.2' 匹配 'ark-glm-5.2'。",
+  "modelPricing": {
+    "deepseek-v4-pro": { "input": 2, "output": 8, "cacheRead": 0.5, "cacheWrite5m": 3, "cacheWrite1h": 3 },
+    "deepseek": { "input": 2, "output": 8, "cacheRead": 0.5, "cacheWrite5m": 3, "cacheWrite1h": 3 },
+    "doubao-seed-2.0-code": { "input": 3, "output": 9, "cacheRead": 0.6, "cacheWrite5m": 4, "cacheWrite1h": 4 },
+    "doubao-seed-2.0-pro": { "input": 4, "output": 12, "cacheRead": 0.8, "cacheWrite5m": 5, "cacheWrite1h": 5 },
+    "ark-minimax-m2.5": { "input": 10, "output": 10, "cacheRead": 1, "cacheWrite5m": 10, "cacheWrite1h": 10 },
+    "ark-minimax-m2.7": { "input": 10, "output": 10, "cacheRead": 1, "cacheWrite5m": 10, "cacheWrite1h": 10 },
+    "ark-kimi-k2.5": { "input": 8, "output": 8, "cacheRead": 1, "cacheWrite5m": 8, "cacheWrite1h": 8 },
+    "ark-kimi-k2.6": { "input": 8, "output": 8, "cacheRead": 1, "cacheWrite5m": 8, "cacheWrite1h": 8 },
+    "ark-glm-5.1": { "input": 5, "output": 5, "cacheRead": 0.5, "cacheWrite5m": 5, "cacheWrite1h": 5 },
+    "ark-glm-5.2": { "input": 5, "output": 5, "cacheRead": 0.5, "cacheWrite5m": 5, "cacheWrite1h": 5 },
+    "ark-deepseek-v3.2": { "input": 2, "output": 8, "cacheRead": 0.5, "cacheWrite5m": 3, "cacheWrite1h": 3 },
+    "claude": { "input": 21, "output": 63, "cacheRead": 2.1, "cacheWrite5m": 21, "cacheWrite1h": 26.25 }
+  }
+}

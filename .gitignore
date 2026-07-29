@@ -1,0 +1,22 @@
+# 依赖
+node_modules/
+
+# npm 打包产物
+*.tgz
+
+# npm 凭证文件（含私服认证，切勿提交）
+.npmrc
+
+# 日志与本地状态
+*.log
+state/
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+_tmp_*.js

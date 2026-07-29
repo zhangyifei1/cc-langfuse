@@ -1,0 +1,15 @@
+# 发布到 npm 私服的配置示例
+# 用法：
+#   1. 把本文件复制为 .npmrc（去掉 .example）
+#   2. 把 <NEXUS_REGISTRY> 换成你的私服地址，如 http://your-nexus-host/repository/npm-hosted/
+#   3. 配置私服认证：npm adduser --registry=<NEXUS_REGISTRY> 或在 .npmrc 写 _auth
+#   4. 发布：npm publish
+#
+# 用户安装时，私服地址需在全局/项目 .npmrc 配置为 registry，或直接：
+#   npm i -g cc-langfuse --registry=<NEXUS_REGISTRY>
+
+registry=<NEXUS_REGISTRY>
+# 若私服需要认证（base64 of username:password）：
+# _auth=<BASE64_CREDENTIALS>
+# email=you@example.com
+# always-auth=true

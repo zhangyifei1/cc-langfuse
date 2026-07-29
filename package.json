@@ -1,0 +1,29 @@
+{
+  "name": "cc-langfuse",
+  "version": "1.0.0",
+  "description": "Claude Code -> Langfuse 探针。一键安装，自动把 Claude Code 会话数据（token 用量、调用时序、工具调用、git 分支等）推送到 Langfuse。",
+  "bin": {
+    "cc-langfuse": "src/install.js"
+  },
+  "main": "src/hook.js",
+  "files": [
+    "src",
+    "config",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --check src/hook.js && node --check src/install.js && node --check src/config-loader.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "keywords": [
+    "claude-code",
+    "langfuse",
+    "observability",
+    "hook"
+  ],
+  "author": "张某飞 <a604725229@qq.com>",
+  "license": "MIT",
+  "private": false
+}
