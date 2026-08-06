@@ -7,6 +7,28 @@ Claude Code -> Langfuse 探针。一键安装，自动把 Claude Code 会话数�
 - **[使用说明（USAGE.md）](./USAGE.md)** -- 安装与使用指南
 - **[部署文档（DEPLOY.md）](./DEPLOY.md)** -- 部署、发布、配置、运维指南
 
+## 前提条件
+
+- **已安装 Claude Code** —— 探针通过它的 Stop 事件触发回调，并自带 Node 运行时（无需单独装 Node）
+- **已部署 Langfuse** —— 自建 Langfuse 实例或使用 Langfuse Cloud，创建项目并获取 Public Key / Secret Key
+
+## 工作流程
+
+装好探针后正常使用 Claude Code 即可，数据自动上送，无需额外操作：
+
+1. 在 Claude Code 中对话
+2. 会话结束（Stop 事件）时，探针 **自动触发回调**
+3. 探针读取会话 transcript，归并同一次 LLM 调用，提取 token 用量、工具调用、git 分支等
+4. 通过 Langfuse REST API 将数据自动上传到 Langfuse
+5. 在 Langfuse 平台查看调用链、用量统计
+
+```
+Claude Code 对话结束 (Stop 事件)
+        │  自动触发回调
+        ▼
+探针读取 transcript → 归并/提取数据 → 上传到 Langfuse
+```
+
 ## 快速开始
 
 ```bash

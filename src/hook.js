@@ -112,6 +112,37 @@ function resolveUserId(cwd) {
   return { userId, meta };
 }
 
+// --- git 分支解析（兜底）---
+// Claude Code 在某些环境（如 Windows cmd）下获取分支会失败，transcript 的 gitBranch
+// 字段会被写成字面量 "HEAD" 或为空。此时用 cwd 主动调 git 命令兜底取真实分支名。
+// 优先 rev-parse --abbrev-ref（短名，如 main）；失败再试 symbolic-ref；都失败返回 null。
+function resolveGitBranch(cwd) {
+  if (!cwd) return null;
+  const tryCmd = (cmd) => {
+    try {
+      const out = execSync(cmd, {
+        cwd,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "ignore"],
+        timeout: 3000,
+      }).trim();
+      // 排除空值、字面量 "HEAD"、 detached 时 rev-parse 返回的 commit sha（含 "HEAD" 则丢弃）
+      if (out && out !== "HEAD") return out;
+    } catch (_) {}
+    return null;
+  };
+  // 短分支名（在 detached HEAD 状态下返回 "HEAD"，此时再试 symbolic-ref 拿不到，最终兜底 null）
+  let branch = tryCmd("git rev-parse --abbrev-ref HEAD");
+  if (branch) return branch;
+  // 兜底：symbolic-ref 取完整 ref 名（如 refs/heads/main），取末段
+  const ref = tryCmd("git symbolic-ref --quiet HEAD");
+  if (ref) {
+    const short = ref.split("/").pop();
+    if (short && short !== "HEAD") return short;
+  }
+  return null;
+}
+
 // --- 跨平台文件锁（.lock 文件 + 排他打开重试）---
 class FileLock {
   constructor(lockPath, timeoutMs = 2000) {
@@ -514,16 +545,25 @@ function buildTokenDetails(usage, model) {
   const webSearchReqs = serverToolUse.web_search_requests || 0;
   const webFetchReqs = serverToolUse.web_fetch_requests || 0;
 
-  // usageDetails：基础 token + 缓存明细（token 用量仍上送，便于用量监控）
+  // usageDetails：只放 input / output 两个标准字段。
+  // 【关键】Langfuse v4 会把 usageDetails 内所有数值字段按字段名归类并相加得到 Total usage：
+  //   字段名含 "input"  -> Input usage
+  //   字段名含 "output" -> Output usage
+  //   其余            -> Other usage（仍计入 Total）
+  // 因此【绝对不能】把 total 放进来（= input+output 会被重复算），也【不能】把
+  //   inputCacheReads/inputCacheCreation 放进来（字段名含 "input" 会被并入 Input 再加一次）。
+  // 【Claude 口径】usage.input_tokens 只含本次新读取 token，缓存部分单独统计于
+  //   cache_read_input_tokens / cache_creation_input_tokens。真实输入 =
+  //   input_tokens + cache_read_input_tokens + cache_creation_input_tokens。
+  //   故 input 字段需把缓存 token 计入，否则 Total 偏小。
+  const fullInput = inputTokens + cacheRead + cacheCreation;
   const usageDetails = {
-    input: inputTokens,
+    input: fullInput,
     output: outputTokens,
-    total: inputTokens + outputTokens,
-    inputCacheReads: cacheRead,
-    inputCacheCreation: cacheCreation,
   };
 
   // 额外维度（放 Generation metadata，便于监控/审查）。成本计算已移除，不含 cost_*/pricing_* 字段
+  // 缓存明细放 metadata，仅展示不参与 Langfuse token 加总。
   const extraMeta = {
     service_tier: usage.service_tier || null,
     speed: usage.speed || null,
@@ -532,6 +572,10 @@ function buildTokenDetails(usage, model) {
     web_fetch_requests: webFetchReqs,
     cache_write_5m: cacheWrite5m,
     cache_write_1h: cacheWrite1h,
+    input_tokens: inputTokens,
+    cache_read_input_tokens: cacheRead,
+    cache_creation_input_tokens: cacheCreation,
+    total_tokens: fullInput + outputTokens,
   };
 
   return { usageDetails, extraMeta };
@@ -606,7 +650,13 @@ function buildEventsForTrace(sessionId, traceIndex, trace, transcriptPath, userI
   const events = [];
 
   // 顶层 Trace 事件
-  const gitBranch = trace.gitBranch || null;
+  // git_branch 兜底：transcript 的 gitBranch 在 cmd 等环境下会被写成 "HEAD" 或为空，
+  // 此时用 cwd 主动调 git 命令取真实分支名，避免分支信息丢失。
+  let gitBranch = trace.gitBranch || null;
+  if (!gitBranch || gitBranch === "HEAD") {
+    const fallback = resolveGitBranch(trace.cwd);
+    if (fallback) gitBranch = fallback;
+  }
   const topMetadata = {
     source: "claude-code",
     session_id: sessionId,
@@ -647,9 +697,13 @@ function buildEventsForTrace(sessionId, traceIndex, trace, transcriptPath, userI
   for (const step of trace.llmSteps) {
     const u = getUsage(stepFirstMsg(step));
     if (u) {
-      traceInputTokens += u.input_tokens || 0;
+      // 【Claude 口径】真实输入 = input_tokens + cache_read + cache_creation（缓存 token 不含在 input_tokens 内）
+      const stepCacheRead = u.cache_read_input_tokens || 0;
+      const stepCacheCreation = u.cache_creation_input_tokens || 0;
+      const stepInput = (u.input_tokens || 0) + stepCacheRead + stepCacheCreation;
+      traceInputTokens += stepInput;
       traceOutputTokens += u.output_tokens || 0;
-      traceCacheRead += u.cache_read_input_tokens || 0;
+      traceCacheRead += stepCacheRead;
       traceWebSearch += (u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
       traceWebFetch += (u.server_tool_use && u.server_tool_use.web_fetch_requests) || 0;
     }

@@ -20,3 +20,5 @@ Thumbs.db
 # 临时文件
 *.tmp
 _tmp_*.js
+docs/TOKEN_DESIGN_BRIEF.md
+docs/TOKEN_DESIGN.md
